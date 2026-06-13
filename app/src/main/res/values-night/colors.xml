@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#ff10201a</color>
+    <color name="colorAccent">#ff9bd8c0</color>
+    <color name="fg">#ffc7eddf</color>
+    <color name="bgBlack">#ff101512</color>
+    <color name="bgWhite">#ff101512</color>
+    <color name="md3e_surface">#ff101512</color>
+    <color name="md3e_surface_container">#ff1b201d</color>
+    <color name="md3e_surface_container_high">#ff262b28</color>
+    <color name="md3e_surface_container_highest">#ff303633</color>
+    <color name="md3e_on_surface">#ffe1ebe5</color>
+    <color name="md3e_on_surface_variant">#ffc0cbc5</color>
+    <color name="md3e_outline">#ff8b9690</color>
+    <color name="md3e_outline_variant">#ff43504a</color>
+    <color name="md3e_primary">#ff9bd8c0</color>
+    <color name="md3e_primary_soft">#ff80c6ad</color>
+    <color name="md3e_on_primary">#ff00382b</color>
+    <color name="md3e_primary_container">#ff00513f</color>
+    <color name="md3e_service_container">#ff425c53</color>
+    <color name="md3e_on_service_container">#ffd0eadc</color>
+    <color name="md3e_slider_inactive">#ff6b8077</color>
+    <color name="md3e_switch_track_checked">#ff80c6ad</color>
+    <color name="md3e_switch_thumb_checked">#ff3a5047</color>
+    <color name="md3e_switch_track_unchecked">#ff17211d</color>
+    <color name="md3e_switch_thumb_unchecked">#ff8b9690</color>
+    <color name="md3e_switch_border_unchecked">#ff8b9690</color>
+    <color name="md3e_switch_track_disabled">#ff27302c</color>
+    <color name="md3e_error">#ffffb4ab</color>
+    <color name="md3e_on_error">#ff690005</color>
+    <color name="md3e_success">#ff8fd8aa</color>
+    <color name="wrong">#80FF0000</color>
+    <color name="right">#ff000000</color>
+</resources>

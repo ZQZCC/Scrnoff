@@ -1,0 +1,658 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/md3e_surface"
+    android:gravity="bottom"
+    android:onClick="finish"
+    android:orientation="horizontal">
+
+    <View
+        android:id="@+id/left"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:visibility="gone" />
+
+    <FrameLayout
+        android:id="@+id/ll"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="2"
+        android:background="@drawable/md3e_sheet"
+        android:clickable="true"
+        android:clipToPadding="false"
+        android:focusable="true"
+        android:paddingLeft="0dp"
+        android:paddingTop="96dp"
+        android:paddingRight="0dp"
+        android:paddingBottom="0dp">
+
+        <ScrollView
+            android:id="@+id/sv"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginTop="0dp"
+            android:clipToPadding="false"
+            android:overScrollMode="ifContentScrolls"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:id="@+id/lll"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingLeft="20dp"
+                android:paddingRight="20dp"
+                android:paddingBottom="24dp">
+
+                <TextView
+                    android:id="@+id/large_title_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="64dp"
+                    android:layout_marginLeft="4dp"
+                    android:layout_marginTop="88dp"
+                    android:layout_marginRight="4dp"
+                    android:autoLink="all"
+                    android:ellipsize="end"
+                    android:gravity="start|center_vertical"
+                    android:includeFontPadding="false"
+                    android:paddingLeft="0dp"
+                    android:paddingRight="0dp"
+                    android:text="@string/shortcutoff"
+                    android:textColor="@color/md3e_on_surface"
+                    android:textSize="32sp"
+                    android:textStyle="normal" />
+
+                <Button
+                    android:id="@+id/activate_button"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/md3e_error_pill"
+                    android:elevation="0dp"
+                    android:letterSpacing="0"
+                    android:minHeight="56dp"
+                    android:paddingLeft="20dp"
+                    android:paddingRight="20dp"
+                    android:stateListAnimator="@null"
+                    android:text="@string/not_ok"
+                    android:textAllCaps="false"
+                    android:textColor="@color/md3e_on_error"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/md3e_panel_high"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingLeft="16dp"
+                    android:paddingRight="16dp"
+                    android:tag="surface_container">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:gravity="center_vertical"
+                        android:includeFontPadding="false"
+                        android:text="@string/shortcuton"
+                        android:textColor="@color/md3e_on_surface"
+                        android:textSize="16sp" />
+
+                    <ka.tile.scrnoff.Md3eSwitchView
+                        android:id="@+id/screenoff_switch"
+                        android:layout_width="52dp"
+                        android:layout_height="48dp"
+                        android:checked="true"
+                        android:enabled="false" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/settings_content"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:background="@drawable/md3e_segment_top"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:tag="surface_container">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_marginRight="16dp"
+                            android:layout_weight="1"
+                            android:gravity="center_vertical"
+                            android:includeFontPadding="false"
+                            android:text="@string/start_global_control"
+                            android:textColor="@color/md3e_on_surface"
+                            android:textSize="16sp" />
+
+                        <ka.tile.scrnoff.Md3eSwitchView
+                            android:id="@+id/s1"
+                            android:layout_width="52dp"
+                            android:layout_height="48dp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:layout_marginTop="2dp"
+                        android:background="@drawable/md3e_segment_middle"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:tag="surface_container">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_marginRight="16dp"
+                            android:layout_weight="1"
+                            android:gravity="center_vertical"
+                            android:includeFontPadding="false"
+                            android:text="@string/net_ctl"
+                            android:textColor="@color/md3e_on_surface"
+                            android:textSize="16sp" />
+
+                        <ka.tile.scrnoff.Md3eSwitchView
+                            android:id="@+id/s8"
+                            android:layout_width="52dp"
+                            android:layout_height="48dp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:layout_marginTop="2dp"
+                        android:background="@drawable/md3e_segment_middle"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:tag="surface_container">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_marginRight="16dp"
+                            android:layout_weight="1"
+                            android:gravity="center_vertical"
+                            android:includeFontPadding="false"
+                            android:text="@string/orientation"
+                            android:textColor="@color/md3e_on_surface"
+                            android:textSize="16sp" />
+
+                        <ka.tile.scrnoff.Md3eSwitchView
+                            android:id="@+id/s6"
+                            android:layout_width="52dp"
+                            android:layout_height="48dp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:layout_marginTop="2dp"
+                        android:background="@drawable/md3e_segment_bottom"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:tag="surface_container">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_marginRight="16dp"
+                            android:layout_weight="1"
+                            android:gravity="center_vertical"
+                            android:includeFontPadding="false"
+                            android:text="@string/key_control"
+                            android:textColor="@color/md3e_on_surface"
+                            android:textSize="16sp" />
+
+                        <ka.tile.scrnoff.Md3eSwitchView
+                            android:id="@+id/s7"
+                            android:layout_width="52dp"
+                            android:layout_height="48dp" />
+                    </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/md3e_panel"
+                    android:orientation="vertical"
+                    android:paddingLeft="16dp"
+                    android:paddingTop="14dp"
+                    android:paddingRight="16dp"
+                    android:paddingBottom="16dp"
+                    android:tag="surface_container">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:text="@string/scroff"
+                            android:textColor="@color/md3e_on_surface_variant"
+                            android:textSize="13sp" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:text="@string/scron"
+                            android:textColor="@color/md3e_on_surface_variant"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:orientation="horizontal">
+
+                        <EditText
+                            android:id="@+id/e1"
+                            android:layout_width="0dp"
+                            android:layout_height="48dp"
+                            android:layout_marginRight="6dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/md3e_input"
+                            android:gravity="center"
+                            android:hint="25"
+                            android:inputType="number"
+                            android:selectAllOnFocus="true"
+                            android:textColor="@color/md3e_on_surface"
+                            android:textColorHighlight="@color/md3e_primary_container"
+                            android:textColorHint="@color/md3e_on_surface_variant"
+                            android:textCursorDrawable="@drawable/md3e_edit_cursor"
+                            android:textSelectHandle="@drawable/md3e_text_select_handle"
+                            android:textSelectHandleLeft="@drawable/md3e_text_select_handle"
+                            android:textSelectHandleRight="@drawable/md3e_text_select_handle" />
+
+                        <EditText
+                            android:id="@+id/e2"
+                            android:layout_width="0dp"
+                            android:layout_height="48dp"
+                            android:layout_marginLeft="6dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/md3e_input"
+                            android:gravity="center"
+                            android:hint="24"
+                            android:inputType="number"
+                            android:selectAllOnFocus="true"
+                            android:textColor="@color/md3e_on_surface"
+                            android:textColorHighlight="@color/md3e_primary_container"
+                            android:textColorHint="@color/md3e_on_surface_variant"
+                            android:textCursorDrawable="@drawable/md3e_edit_cursor"
+                            android:textSelectHandle="@drawable/md3e_text_select_handle"
+                            android:textSelectHandleLeft="@drawable/md3e_text_select_handle"
+                            android:textSelectHandleRight="@drawable/md3e_text_select_handle" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:background="@drawable/md3e_segment_top"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:tag="surface_container">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_marginRight="16dp"
+                            android:layout_weight="1"
+                            android:gravity="center_vertical"
+                            android:includeFontPadding="false"
+                            android:text="@string/show_fw"
+                            android:textColor="@color/md3e_on_surface"
+                            android:textSize="16sp" />
+
+                        <ka.tile.scrnoff.Md3eSwitchView
+                            android:id="@+id/s2"
+                            android:layout_width="52dp"
+                            android:layout_height="48dp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:layout_marginTop="2dp"
+                        android:background="@drawable/md3e_segment_middle"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:tag="surface_container">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_marginRight="16dp"
+                            android:layout_weight="1"
+                            android:gravity="center_vertical"
+                            android:includeFontPadding="false"
+                            android:text="@string/show_only_land"
+                            android:textColor="@color/md3e_on_surface"
+                            android:textSize="16sp" />
+
+                        <ka.tile.scrnoff.Md3eSwitchView
+                            android:id="@+id/s3"
+                            android:layout_width="52dp"
+                            android:layout_height="48dp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:layout_marginTop="2dp"
+                        android:background="@drawable/md3e_segment_middle"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:tag="surface_container">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_marginRight="16dp"
+                            android:layout_weight="1"
+                            android:gravity="center_vertical"
+                            android:includeFontPadding="false"
+                            android:text="@string/lock_fw"
+                            android:textColor="@color/md3e_on_surface"
+                            android:textSize="16sp" />
+
+                        <ka.tile.scrnoff.Md3eSwitchView
+                            android:id="@+id/s4"
+                            android:layout_width="52dp"
+                            android:layout_height="48dp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:layout_marginTop="2dp"
+                        android:background="@drawable/md3e_segment_bottom"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:tag="surface_container">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_marginRight="16dp"
+                            android:layout_weight="1"
+                            android:gravity="center_vertical"
+                            android:includeFontPadding="false"
+                            android:text="@string/double_tap"
+                            android:textColor="@color/md3e_on_surface"
+                            android:textSize="16sp" />
+
+                        <ka.tile.scrnoff.Md3eSwitchView
+                            android:id="@+id/s5"
+                            android:layout_width="52dp"
+                            android:layout_height="48dp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/md3e_slider_card"
+                    android:orientation="vertical"
+                    android:paddingLeft="16dp"
+                    android:paddingTop="16dp"
+                    android:paddingRight="16dp"
+                    android:paddingBottom="16dp"
+                    android:tag="surface_container">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:baselineAligned="false"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_marginRight="12dp"
+                            android:gravity="center_vertical"
+                            android:layout_weight="1"
+                            android:includeFontPadding="false"
+                            android:text="@string/fw_size"
+                            android:textColor="@color/md3e_on_surface"
+                            android:textSize="16sp" />
+
+                        <EditText
+                            android:id="@+id/eb"
+                            android:layout_width="72dp"
+                            android:layout_height="match_parent"
+                            android:background="@null"
+                            android:gravity="right|center_vertical"
+                            android:hint="50%"
+                            android:includeFontPadding="false"
+                            android:inputType="number"
+                            android:maxLength="4"
+                            android:minWidth="0dp"
+                            android:minHeight="0dp"
+                            android:padding="0dp"
+                            android:selectAllOnFocus="true"
+                            android:singleLine="true"
+                            android:textAlignment="viewEnd"
+                            android:textColor="@color/md3e_on_surface"
+                            android:textColorHighlight="@color/md3e_primary_container"
+                            android:textColorHint="@color/md3e_on_surface_variant"
+                            android:textCursorDrawable="@drawable/md3e_edit_cursor"
+                            android:textSelectHandle="@drawable/md3e_text_select_handle"
+                            android:textSelectHandleLeft="@drawable/md3e_text_select_handle"
+                            android:textSelectHandleRight="@drawable/md3e_text_select_handle"
+                            android:textSize="16sp" />
+                    </LinearLayout>
+
+                    <ka.tile.scrnoff.Md3eSliderView
+                        android:id="@+id/sb"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:layout_marginTop="8dp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/md3e_slider_card"
+                    android:orientation="vertical"
+                    android:paddingLeft="16dp"
+                    android:paddingTop="16dp"
+                    android:paddingRight="16dp"
+                    android:paddingBottom="16dp"
+                    android:tag="surface_container">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:baselineAligned="false"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_marginRight="12dp"
+                            android:gravity="center_vertical"
+                            android:layout_weight="1"
+                            android:includeFontPadding="false"
+                            android:text="@string/fw_tran"
+                            android:textColor="@color/md3e_on_surface"
+                            android:textSize="16sp" />
+
+                        <EditText
+                            android:id="@+id/ec"
+                            android:layout_width="72dp"
+                            android:layout_height="match_parent"
+                            android:background="@null"
+                            android:gravity="right|center_vertical"
+                            android:hint="90%"
+                            android:includeFontPadding="false"
+                            android:inputType="number"
+                            android:maxLength="4"
+                            android:minWidth="0dp"
+                            android:minHeight="0dp"
+                            android:padding="0dp"
+                            android:selectAllOnFocus="true"
+                            android:singleLine="true"
+                            android:textAlignment="viewEnd"
+                            android:textColor="@color/md3e_on_surface"
+                            android:textColorHighlight="@color/md3e_primary_container"
+                            android:textColorHint="@color/md3e_on_surface_variant"
+                            android:textCursorDrawable="@drawable/md3e_edit_cursor"
+                            android:textSelectHandle="@drawable/md3e_text_select_handle"
+                            android:textSelectHandleLeft="@drawable/md3e_text_select_handle"
+                            android:textSelectHandleRight="@drawable/md3e_text_select_handle"
+                            android:textSize="16sp" />
+                    </LinearLayout>
+
+                    <ka.tile.scrnoff.Md3eSliderView
+                        android:id="@+id/sc"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:layout_marginTop="8dp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/md3e_slider_card"
+                    android:orientation="vertical"
+                    android:paddingLeft="16dp"
+                    android:paddingTop="16dp"
+                    android:paddingRight="16dp"
+                    android:paddingBottom="16dp"
+                    android:tag="surface_container">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:baselineAligned="false"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_marginRight="12dp"
+                            android:gravity="center_vertical"
+                            android:layout_weight="1"
+                            android:includeFontPadding="false"
+                            android:text="@string/ori_sensity"
+                            android:textColor="@color/md3e_on_surface"
+                            android:textSize="16sp" />
+
+                        <EditText
+                            android:id="@+id/ed"
+                            android:layout_width="72dp"
+                            android:layout_height="match_parent"
+                            android:background="@null"
+                            android:gravity="right|center_vertical"
+                            android:hint="10%"
+                            android:includeFontPadding="false"
+                            android:inputType="number"
+                            android:maxLength="3"
+                            android:minWidth="0dp"
+                            android:minHeight="0dp"
+                            android:padding="0dp"
+                            android:selectAllOnFocus="true"
+                            android:singleLine="true"
+                            android:textAlignment="viewEnd"
+                            android:textColor="@color/md3e_on_surface"
+                            android:textColorHighlight="@color/md3e_primary_container"
+                            android:textColorHint="@color/md3e_on_surface_variant"
+                            android:textCursorDrawable="@drawable/md3e_edit_cursor"
+                            android:textSelectHandle="@drawable/md3e_text_select_handle"
+                            android:textSelectHandleLeft="@drawable/md3e_text_select_handle"
+                            android:textSelectHandleRight="@drawable/md3e_text_select_handle"
+                            android:textSize="16sp" />
+                    </LinearLayout>
+
+                    <ka.tile.scrnoff.Md3eSliderView
+                        android:id="@+id/sd"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:layout_marginTop="8dp" />
+                </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </ScrollView>
+
+        <View
+            android:id="@+id/title_scrim"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:background="@color/md3e_surface" />
+
+        <TextView
+            android:id="@+id/title_text"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:alpha="0"
+            android:autoLink="all"
+            android:ellipsize="end"
+            android:gravity="start|center_vertical"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:paddingLeft="24dp"
+            android:paddingRight="24dp"
+            android:text="@string/shortcutoff"
+            android:textColor="@color/md3e_on_surface"
+            android:textSize="22sp"
+            android:textStyle="normal" />
+    </FrameLayout>
+
+    <View
+        android:id="@+id/right"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:visibility="gone" />
+</LinearLayout>
