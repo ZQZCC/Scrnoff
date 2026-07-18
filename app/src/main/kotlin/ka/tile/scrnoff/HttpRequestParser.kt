@@ -5,11 +5,12 @@ import java.io.ByteArrayOutputStream
 class HttpRequestParser {
     private val rawData = ByteArrayOutputStream()
 
-    fun add(data: ByteArray) {
-        if (rawData.size() + data.size > MAX_REQUEST_BYTES) {
+    fun add(data: ByteArray, size: Int) {
+        if (rawData.size() + size > MAX_REQUEST_BYTES) {
             rawData.reset()
+            return
         }
-        rawData.write(data)
+        rawData.write(data, 0, size)
     }
 
     fun clear() {

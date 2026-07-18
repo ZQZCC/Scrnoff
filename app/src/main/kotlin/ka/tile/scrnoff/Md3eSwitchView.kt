@@ -5,7 +5,6 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
-import android.os.Build
 import android.util.AttributeSet
 import android.view.View
 import android.view.accessibility.AccessibilityNodeInfo
@@ -31,11 +30,20 @@ class Md3eSwitchView @JvmOverloads constructor(
     private var animator: ValueAnimator? = null
     private var broadcasting = false
     private var listener: ((Md3eSwitchView, Boolean) -> Unit)? = null
+    private val checkedTrackColor = context.colorCompat(R.color.md3e_switch_track_checked)
+    private val uncheckedTrackColor = context.colorCompat(R.color.md3e_switch_track_unchecked)
+    private val uncheckedThumbColor = context.colorCompat(R.color.md3e_switch_thumb_unchecked)
+    private val uncheckedBorderColor = context.colorCompat(R.color.md3e_switch_border_unchecked)
+    private val disabledTrackColor = context.colorCompat(R.color.md3e_switch_track_disabled)
+    private val disabledContentColor = context.colorCompat(R.color.md3e_outline_variant)
     private val checkedThumbColor by lazy {
         if (context.isNightTheme) {
             context.colorCompat(R.color.md3e_switch_thumb_checked)
         } else {
-            context.averageSystemColor("system_accent2_50", "system_accent2_10")
+            context.averageSystemColor(
+                android.R.color.system_accent2_50,
+                android.R.color.system_accent2_10,
+            )
                 ?: context.colorCompat(R.color.md3e_switch_thumb_checked)
         }
     }
@@ -47,7 +55,8 @@ class Md3eSwitchView @JvmOverloads constructor(
         minimumHeight = 48.dpInt
 
         if (attrs != null) {
-            val typedArray = context.obtainStyledAttributes(attrs, intArrayOf(android.R.attr.checked))
+            val typedArray =
+                context.obtainStyledAttributes(attrs, intArrayOf(android.R.attr.checked))
             try {
                 checked = typedArray.getBoolean(0, false)
                 progress = if (checked) 1f else 0f
@@ -92,9 +101,9 @@ class Md3eSwitchView @JvmOverloads constructor(
     }
 
     override fun performClick(): Boolean {
-        val handled = super.performClick()
+        super.performClick()
         toggle()
-        return handled || true
+        return true
     }
 
     override fun setEnabled(enabled: Boolean) {
@@ -121,18 +130,18 @@ class Md3eSwitchView @JvmOverloads constructor(
         val borderColor: Int?
         if (isEnabled) {
             if (checked) {
-                trackColor = context.colorCompat(R.color.md3e_switch_track_checked)
+                trackColor = checkedTrackColor
                 thumbColor = checkedThumbColor
                 borderColor = null
             } else {
-                trackColor = context.colorCompat(R.color.md3e_switch_track_unchecked)
-                thumbColor = context.colorCompat(R.color.md3e_switch_thumb_unchecked)
-                borderColor = context.colorCompat(R.color.md3e_switch_border_unchecked)
+                trackColor = uncheckedTrackColor
+                thumbColor = uncheckedThumbColor
+                borderColor = uncheckedBorderColor
             }
         } else {
-            trackColor = context.colorCompat(R.color.md3e_switch_track_disabled)
-            thumbColor = context.colorCompat(R.color.md3e_outline_variant)
-            borderColor = if (checked) null else context.colorCompat(R.color.md3e_outline_variant)
+            trackColor = disabledTrackColor
+            thumbColor = disabledContentColor
+            borderColor = if (checked) null else disabledContentColor
         }
 
         paint.style = Paint.Style.FILL
@@ -190,7 +199,7 @@ class Md3eSwitchView @JvmOverloads constructor(
 
     private fun animateProgress(target: Float) {
         animator?.cancel()
-        if (!isLaidOutCompat) {
+        if (!isLaidOut) {
             progress = target
             invalidate()
             return
@@ -204,9 +213,6 @@ class Md3eSwitchView @JvmOverloads constructor(
             start()
         }
     }
-
-    private val isLaidOutCompat: Boolean
-        get() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) isLaidOut else width > 0 && height > 0
 
     private val Int.dp: Float
         get() = this * density

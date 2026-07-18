@@ -1,5 +1,6 @@
 package ka.tile.scrnoff
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
 import android.app.Service
@@ -8,7 +9,6 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
@@ -35,22 +35,23 @@ import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
-import android.widget.Button
 import android.widget.EditText
-import android.widget.ScrollView
-import android.widget.TextView
 import android.widget.Toast
+import ka.tile.scrnoff.databinding.MainBinding
 import java.io.DataOutputStream
 import java.io.FileOutputStream
 import java.net.Inet4Address
 import java.net.NetworkInterface
 import java.util.Locale
+import kotlin.concurrent.thread
 import kotlin.math.roundToInt
 import rikka.shizuku.Shizuku
 
 private const val SURFACE_CONTAINER_TAG = "surface_container"
 
+@SuppressLint("GestureBackNavigation")
 class MainActivity : Activity() {
+    private lateinit var binding: MainBinding
     private var isServiceOk = false
     private var isPermissionResultListenerRegistered = false
     private var isBroadcastReceiverRegistered = false
@@ -68,14 +69,15 @@ class MainActivity : Activity() {
 
     private val binderReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent?) {
-            val binder = AppBroadcasts.aliveBinderFrom(intent) ?: return
-            iScreenOff = IScreenOff.Stub.asInterface(binder)
-            enableScreenOffFunctions()
+            if (!AppBroadcasts.isTrustedControllerSender(this, context)) return
+            connectController(intent)
         }
     }
 
     private val shizukuPermissionListener =
-        Shizuku.OnRequestPermissionResultListener { _, _ -> checkShizuku() }
+        Shizuku.OnRequestPermissionResultListener { _, result ->
+            if (result == PackageManager.PERMISSION_GRANTED) activateWithShizuku()
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -83,7 +85,8 @@ class MainActivity : Activity() {
         val window = window
         window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
         window.attributes.dimAmount = 0.5f
-        setContentView(R.layout.main)
+        binding = MainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             window.isNavigationBarContrastEnforced = false
@@ -97,11 +100,17 @@ class MainActivity : Activity() {
         val stickyBinderIntent = AppBroadcasts.registerReceiver(
             this,
             binderReceiver,
-            IntentFilter(AppBroadcasts.ACTION_SEND_BINDER),
+            AppBroadcasts.binderFilter(),
             exported = true,
         )
         isBroadcastReceiverRegistered = true
-        binderReceiver.onReceive(this, stickyBinderIntent)
+        connectController(stickyBinderIntent)
+    }
+
+    private fun connectController(intent: Intent?) {
+        val binder = AppBroadcasts.aliveBinderFrom(intent) ?: return
+        iScreenOff = IScreenOff.Stub.asInterface(binder)
+        enableScreenOffFunctions()
     }
 
     private fun applyAveragedSurfaces(isNight: Boolean) {
@@ -109,27 +118,33 @@ class MainActivity : Activity() {
             if (isNight) {
                 colorCompat(R.color.md3e_surface)
             } else {
-                averageSystemColor("system_neutral1_10", "system_neutral2_10")
+                averageSystemColor(
+                    android.R.color.system_neutral1_10,
+                    android.R.color.system_neutral2_10,
+                )
                     ?: colorCompat(R.color.md3e_surface)
             }
         val containerColor =
             if (isNight) {
                 colorCompat(R.color.md3e_surface_container)
             } else {
-                averageSystemColor("system_neutral1_50", "system_neutral2_50")
+                averageSystemColor(
+                    android.R.color.system_neutral1_50,
+                    android.R.color.system_neutral2_50,
+                )
                     ?: colorCompat(R.color.md3e_surface_container)
             }
         surfaceContainerColor = containerColor
         val radius = 36f * resources.displayMetrics.density
 
-        val root = findViewById<View>(R.id.root)
+        val root = binding.root
         root.setBackgroundColor(backgroundColor)
-        findViewById<View>(R.id.ll).background = GradientDrawable().apply {
+        binding.ll.background = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
             setColor(backgroundColor)
             cornerRadii = floatArrayOf(radius, radius, radius, radius, 0f, 0f, 0f, 0f)
         }
-        findViewById<View>(R.id.title_scrim).setBackgroundColor(backgroundColor)
+        binding.titleScrim.setBackgroundColor(backgroundColor)
         tintSurfaceContainers(root, containerColor)
     }
 
@@ -145,9 +160,9 @@ class MainActivity : Activity() {
     }
 
     private fun applySystemBars(isNight: Boolean) {
-        val root = findViewById<View>(R.id.root)
-        val sheet = findViewById<View>(R.id.ll)
-        val scrollContent = findViewById<View>(R.id.lll)
+        val root = binding.root
+        val sheet = binding.ll
+        val scrollContent = binding.lll
         val sheetBottomPadding = sheet.paddingBottom
         val contentBottomPadding = scrollContent.paddingBottom
         collapsedTitleTopPadding = (8f * resources.displayMetrics.density).roundToInt()
@@ -157,7 +172,8 @@ class MainActivity : Activity() {
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             window.attributes = window.attributes.apply {
-                layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                layoutInDisplayCutoutMode =
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
             }
         }
         window.statusBarColor = Color.TRANSPARENT
@@ -172,7 +188,7 @@ class MainActivity : Activity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val lightAppearance =
                 WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or
-                    WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+                        WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
             window.insetsController?.apply {
                 setSystemBarsAppearance(
                     if (lightBars) lightAppearance else 0,
@@ -181,11 +197,11 @@ class MainActivity : Activity() {
             }
         } else {
             var flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
-                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 flags = flags or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
             }
-            if (lightBars && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (lightBars) {
                 flags = flags or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
             }
             if (lightBars && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -220,7 +236,8 @@ class MainActivity : Activity() {
     @Suppress("DEPRECATION")
     private fun WindowInsets.systemBarsCompat(): InsetsCompat =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val bars = getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
+            val bars =
+                getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
             InsetsCompat(
                 left = bars.left,
                 top = bars.top,
@@ -228,7 +245,12 @@ class MainActivity : Activity() {
                 bottom = bars.bottom,
             )
         } else {
-            InsetsCompat(systemWindowInsetLeft, systemWindowInsetTop, systemWindowInsetRight, systemWindowInsetBottom)
+            InsetsCompat(
+                systemWindowInsetLeft,
+                systemWindowInsetTop,
+                systemWindowInsetRight,
+                systemWindowInsetBottom
+            )
         }
 
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
@@ -269,7 +291,8 @@ class MainActivity : Activity() {
                         if (interfaces[index].isNotEmpty()) {
                             interfaces[index].append(' ')
                         }
-                        interfaces[index].append(address.hostAddress).append(':').append(GlobalService.port)
+                        interfaces[index].append(address.hostAddress).append(':')
+                            .append(GlobalService.port)
                         available = true
                     }
             }
@@ -292,7 +315,7 @@ class MainActivity : Activity() {
         } else {
             expandedText.replace('\n', ' ')
         }
-        findViewById<TextView>(R.id.title_text).setOnClickListener(null)
+        binding.titleText.setOnClickListener(null)
         isNetworkTitle = true
         networkTitleExpandedText = if (available) expandedText else "no network available"
         networkTitleCollapsedText = if (available) collapsedText else "no network available"
@@ -308,21 +331,21 @@ class MainActivity : Activity() {
 
     private fun setButtonsOnClick(sp: SharedPreferences) {
         if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            findViewById<View>(R.id.left).visibility = View.VISIBLE
-            findViewById<View>(R.id.right).visibility = View.VISIBLE
+            binding.left.visibility = View.VISIBLE
+            binding.right.visibility = View.VISIBLE
         }
 
-        val sheet = findViewById<View>(R.id.ll)
-        val e1 = findViewById<EditText>(R.id.e1)
-        val e2 = findViewById<EditText>(R.id.e2)
-        val s1 = findViewById<Md3eSwitchView>(R.id.s1)
-        val s2 = findViewById<Md3eSwitchView>(R.id.s2)
-        val s3 = findViewById<Md3eSwitchView>(R.id.s3)
-        val s4 = findViewById<Md3eSwitchView>(R.id.s4)
-        val s5 = findViewById<Md3eSwitchView>(R.id.s5)
-        val s6 = findViewById<Md3eSwitchView>(R.id.s6)
-        val s7 = findViewById<Md3eSwitchView>(R.id.s7)
-        val s8 = findViewById<Md3eSwitchView>(R.id.s8)
+        val sheet = binding.ll
+        val e1 = binding.e1
+        val e2 = binding.e2
+        val s1 = binding.s1
+        val s2 = binding.s2
+        val s3 = binding.s3
+        val s4 = binding.s4
+        val s5 = binding.s5
+        val s6 = binding.s6
+        val s7 = binding.s7
+        val s8 = binding.s8
 
         val accessibilityEnabled = isGlobalAccessibilityServiceEnabled()
         val floatEnabled = sp.getBoolean("float", false) && accessibilityEnabled
@@ -338,12 +361,12 @@ class MainActivity : Activity() {
         s7.isChecked = sp.getBoolean("volume", false)
         s8.isChecked = sp.getBoolean("net", false)
 
-        val sb = findViewById<Md3eSliderView>(R.id.sb)
-        val eb = findViewById<EditText>(R.id.eb)
-        val sc = findViewById<Md3eSliderView>(R.id.sc)
-        val ec = findViewById<EditText>(R.id.ec)
-        val sd = findViewById<Md3eSliderView>(R.id.sd)
-        val ed = findViewById<EditText>(R.id.ed)
+        val sb = binding.sb
+        val eb = binding.eb
+        val sc = binding.sc
+        val ec = binding.ec
+        val sd = binding.sd
+        val ed = binding.ed
         val sliderActive = colorCompat(R.color.md3e_primary_soft)
         val sliderInactive = colorCompat(R.color.md3e_slider_inactive)
         listOf(sb, sc, sd).forEach { it.setColors(sliderActive, sliderInactive) }
@@ -374,22 +397,9 @@ class MainActivity : Activity() {
         }
         updateFloatDependentLayouts(s2.isChecked)
 
-        fun refreshFloatingWindow(enabled: Boolean) {
-            sendBroadcast(AppBroadcasts.refreshFloatingWindowIntent(this, enabled))
-            listOf(160L, 600L).forEach { delay ->
-                s2.postDelayed({
-                    val currentEnabled = sp.getBoolean("float", false) && isGlobalAccessibilityServiceEnabled()
-                    if (currentEnabled == enabled) {
-                        sendBroadcast(AppBroadcasts.refreshFloatingWindowIntent(this, enabled))
-                    }
-                }, delay)
-            }
-        }
-
         fun applyFloatEnabled(enabled: Boolean) {
             if (!enabled) {
-                sp.edit().putBoolean("float", false).commit()
-                refreshFloatingWindow(false)
+                sp.edit().putBoolean("float", false).apply()
                 updateFloatDependentLayouts(false)
                 return
             }
@@ -399,9 +409,8 @@ class MainActivity : Activity() {
                     s1.isChecked = true
                 }
                 if (!isGlobalAccessibilityServiceEnabled()) {
-                    sp.edit().putBoolean("float", false).commit()
+                    sp.edit().putBoolean("float", false).apply()
                     s2.setCheckedSilently(false)
-                    refreshFloatingWindow(false)
                     updateFloatDependentLayouts(false)
                     return
                 }
@@ -410,22 +419,19 @@ class MainActivity : Activity() {
                 if (s8.isChecked) showNet()
             }
 
-            sp.edit().putBoolean("float", true).commit()
-            refreshFloatingWindow(true)
+            sp.edit().putBoolean("float", true).apply()
             updateFloatDependentLayouts(true)
         }
 
         s1.setOnCheckedChangeListener { button, isChecked ->
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                val powerManager = getSystemService(Service.POWER_SERVICE) as PowerManager
-                if (!powerManager.isIgnoringBatteryOptimizations(packageName)) {
-                    startActivity(
-                        Intent(
-                            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-                            Uri.parse("package:$packageName"),
-                        ),
-                    )
-                }
+            val powerManager = getSystemService(Service.POWER_SERVICE) as PowerManager
+            if (!powerManager.isIgnoringBatteryOptimizations(packageName)) {
+                startActivity(
+                    Intent(
+                        Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                        Uri.parse("package:$packageName"),
+                    ),
+                )
             }
 
             if (!isServiceOk) {
@@ -447,10 +453,18 @@ class MainActivity : Activity() {
             applyFloatEnabled(enabled)
         }
         floatSwitchRow.setOnClickListener { s2.toggle() }
-        s3.setOnCheckedChangeListener { _, checked -> sp.edit().putBoolean("land", checked).apply() }
-        s4.setOnCheckedChangeListener { _, checked -> sp.edit().putBoolean("canmove", !checked).apply() }
-        s5.setOnCheckedChangeListener { _, checked -> sp.edit().putBoolean("doubleTap", checked).apply() }
-        s6.setOnCheckedChangeListener { _, checked -> sp.edit().putBoolean("shake", checked).apply() }
+        s3.setOnCheckedChangeListener { _, checked ->
+            sp.edit().putBoolean("land", checked).apply()
+        }
+        s4.setOnCheckedChangeListener { _, checked ->
+            sp.edit().putBoolean("canmove", !checked).apply()
+        }
+        s5.setOnCheckedChangeListener { _, checked ->
+            sp.edit().putBoolean("doubleTap", checked).apply()
+        }
+        s6.setOnCheckedChangeListener { _, checked ->
+            sp.edit().putBoolean("shake", checked).apply()
+        }
         s7.setOnCheckedChangeListener { _, checked ->
             sp.edit().putBoolean("volume", checked).apply()
             e1.isEnabled = checked
@@ -490,8 +504,8 @@ class MainActivity : Activity() {
             sp.edit().putInt("scrOnKey", value).apply()
         }
 
-        findViewById<View>(R.id.activate_button).setOnClickListener { showActivate() }
-        findViewById<View>(R.id.settings_content).visibility =
+        binding.activateButton.setOnClickListener { showActivate() }
+        binding.settingsContent.visibility =
             if (isServiceOk) View.VISIBLE else View.GONE
 
         val density = resources.displayMetrics.density
@@ -501,14 +515,14 @@ class MainActivity : Activity() {
         bindCollapsingTitle()
         sheet.elevation = 20 * density
 
-        findViewById<Md3eSwitchView>(R.id.screenoff_switch).setOnCheckedChangeListener { _, checked ->
+        binding.screenoffSwitch.setOnCheckedChangeListener { _, checked ->
             if (!isServiceOk) return@setOnCheckedChangeListener
             iScreenOff?.setPowerMode(!checked)
         }
     }
 
     private fun bindCollapsingTitle() {
-        val scrollView = findViewById<ScrollView>(R.id.sv)
+        val scrollView = binding.sv
         scrollView.viewTreeObserver.addOnScrollChangedListener { updateTitleFade() }
         scrollView.post {
             applyTitleContent()
@@ -520,8 +534,8 @@ class MainActivity : Activity() {
 
     private fun applyTitleContent() {
         val density = resources.displayMetrics.density
-        val smallTitle = findViewById<TextView>(R.id.title_text)
-        val largeTitle = findViewById<TextView>(R.id.large_title_text)
+        val smallTitle = binding.titleText
+        val largeTitle = binding.largeTitleText
         val largeText =
             if (isNetworkTitle) networkTitleExpandedText else getString(R.string.shortcutoff)
         val smallText =
@@ -548,10 +562,10 @@ class MainActivity : Activity() {
     }
 
     private fun updateTitleFade() {
-        val scrollView = findViewById<ScrollView>(R.id.sv)
-        val smallTitle = findViewById<TextView>(R.id.title_text)
-        val titleScrim = findViewById<View>(R.id.title_scrim)
-        val largeTitle = findViewById<TextView>(R.id.large_title_text)
+        val scrollView = binding.sv
+        val smallTitle = binding.titleText
+        val titleScrim = binding.titleScrim
+        val largeTitle = binding.largeTitleText
         val largeHeight = largeTitle.height.toFloat().takeIf { it > 0f } ?: return
         val largeTop = (largeTitle.top - scrollView.scrollY).toFloat()
         val coveredHeight = (titleScrim.height.toFloat() - largeTop).coerceIn(0f, largeHeight)
@@ -574,7 +588,7 @@ class MainActivity : Activity() {
             item.setHintTextColor(onSurfaceVariant)
             item.highlightColor = primaryContainer
         }
-        findViewById<Button>(R.id.activate_button).setTextColor(colorCompat(R.color.md3e_on_error))
+        binding.activateButton.setTextColor(colorCompat(R.color.md3e_on_error))
     }
 
     private fun openAccessibilityService(button: Md3eSwitchView) {
@@ -642,7 +656,9 @@ class MainActivity : Activity() {
 
     private fun EditText.storeIntOnTextChange(onValue: (Int) -> Unit) {
         addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) =
+                Unit
+
             override fun afterTextChanged(s: Editable?) = Unit
 
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -653,11 +669,11 @@ class MainActivity : Activity() {
 
     fun enableScreenOffFunctions() {
         isServiceOk = true
-        findViewById<View>(R.id.settings_content).visibility = View.VISIBLE
-        findViewById<ScrollView>(R.id.sv).apply {
+        binding.settingsContent.visibility = View.VISIBLE
+        binding.sv.apply {
             post { scrollTo(0, 0) }
         }
-        findViewById<Button>(R.id.activate_button).apply {
+        binding.activateButton.apply {
             setText(R.string.all_ok)
             stateListAnimator = null
             elevation = 0f
@@ -666,12 +682,13 @@ class MainActivity : Activity() {
             setOnClickListener(null)
             setOnLongClickListener {
                 closeScreenOffService()
-                Toast.makeText(this@MainActivity, R.string.service_closed, Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@MainActivity, R.string.service_closed, Toast.LENGTH_SHORT)
+                    .show()
                 finish()
                 true
             }
         }
-        findViewById<Md3eSwitchView>(R.id.screenoff_switch).isEnabled = true
+        binding.screenoffSwitch.isEnabled = true
     }
 
     private fun closeScreenOffService() {
@@ -679,7 +696,6 @@ class MainActivity : Activity() {
             .edit()
             .putBoolean("float", false)
             .apply()
-        sendBroadcast(AppBroadcasts.refreshFloatingWindowIntent(this, false))
         sendBroadcast(AppBroadcasts.exitIntent(this))
         runCatching {
             iScreenOff?.closeAndExit()
@@ -716,12 +732,12 @@ class MainActivity : Activity() {
             return finishWithBackKeyHint()
         }
         super.onKeyDown(keyCode, event)
-        if (findViewById<View>(R.id.settings_content).visibility == View.VISIBLE) {
+        if (binding.settingsContent.visibility == View.VISIBLE) {
             showKeyPressedHint(keyCode)
             return true
         }
         if (!isServiceOk) return true
-        val switch = findViewById<Md3eSwitchView>(R.id.screenoff_switch)
+        val switch = binding.screenoffSwitch
         if (keyCode == scrOffKey) switch.isChecked = true
         if (keyCode == scrOnKey) switch.isChecked = false
         return true
@@ -733,7 +749,6 @@ class MainActivity : Activity() {
     }
 
     private fun checkShizuku() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
         unzipFiles()
 
         if (!isPermissionResultListenerRegistered) {
@@ -741,48 +756,48 @@ class MainActivity : Activity() {
             isPermissionResultListenerRegistered = true
         }
 
-        var shizukuRunning = true
-        var permitted = false
         try {
             if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
                 Shizuku.requestPermission(0)
             } else {
-                permitted = true
+                activateWithShizuku()
             }
         } catch (e: Exception) {
-            if (checkSelfPermission("moe.shizuku.manager.permission.API_V23") == PackageManager.PERMISSION_GRANTED) {
-                permitted = true
-            }
             if (e is IllegalStateException) {
-                shizukuRunning = false
                 Toast.makeText(this, R.string.shizuku_notrun, Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        if (shizukuRunning && permitted) {
-            val command = activationCommand() ?: return
-            runCatching {
-                ShizukuCompat.runShell(command)
-                refreshActivatedState()
-            }.onFailure {
-                Toast.makeText(this, R.string.active_failed, Toast.LENGTH_SHORT).show()
+            } else if (checkSelfPermission("moe.shizuku.manager.permission.API_V23") == PackageManager.PERMISSION_GRANTED) {
+                activateWithShizuku()
             }
         }
     }
 
+    private fun activateWithShizuku() {
+        val command = activationCommand() ?: return
+        runActivation { ShizukuCompat.runShell(command) }
+    }
+
     override fun onConfigurationChanged(newConfig: Configuration) {
-        findViewById<View>(R.id.left).visibility =
+        binding.left.visibility =
             if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) View.VISIBLE else View.GONE
-        findViewById<View>(R.id.right).visibility =
+        binding.right.visibility =
             if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) View.VISIBLE else View.GONE
-        findViewById<View>(R.id.root).requestApplyInsets()
+        binding.root.requestApplyInsets()
         super.onConfigurationChanged(newConfig)
     }
 
     override fun onResume() {
         super.onResume()
-        if (!isServiceOk) {
-            refreshActivatedState()
+        syncAccessibilityState()
+        if (!isServiceOk) refreshActivatedState()
+    }
+
+    private fun syncAccessibilityState() {
+        val enabled = isGlobalAccessibilityServiceEnabled()
+        binding.s1.setCheckedSilently(enabled)
+        if (!enabled && binding.s2.isChecked) {
+            binding.s2.isChecked = false
+        } else if (enabled && binding.s8.isChecked) {
+            showNet()
         }
     }
 
@@ -823,25 +838,34 @@ class MainActivity : Activity() {
                     String.format(getString(R.string.cmd_copy_finish), command),
                     Toast.LENGTH_SHORT,
                 ).show()
-                refreshActivatedState()
             }
             .setNegativeButton(R.string.by_root) { _, _ ->
-                runCatching {
+                runActivation {
                     val process = Runtime.getRuntime().exec("su")
                     DataOutputStream(process.outputStream).use { output ->
                         output.writeBytes(command)
                         output.writeBytes("\nexit\n")
                         output.flush()
                     }
-                }.onFailure {
+                    check(process.waitFor() == 0)
+                }
+            }
+        builder.setPositiveButton(R.string.by_shizuku) { _, _ -> checkShizuku() }
+        builder.show()
+    }
+
+    private fun runActivation(action: () -> Unit) {
+        thread(name = "ScreenOffActivation", isDaemon = true) {
+            val succeeded = runCatching(action).isSuccess
+            runOnUiThread {
+                if (isDestroyed) return@runOnUiThread
+                if (succeeded) {
+                    refreshActivatedState()
+                } else {
                     Toast.makeText(this, R.string.active_failed, Toast.LENGTH_SHORT).show()
                 }
-                refreshActivatedState()
             }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            builder.setPositiveButton(R.string.by_shizuku) { _, _ -> checkShizuku() }
         }
-        builder.show()
     }
 
     private fun activationCommand(): String? =
@@ -856,23 +880,14 @@ class MainActivity : Activity() {
     }
 
     private fun pollActivatedState(token: Int, attempt: Int) {
-        if (token != activationRefreshToken || isServiceOk) return
+        if (token != activationRefreshToken || isServiceOk || isDestroyed) return
 
-        val stickyBinderIntent =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                registerReceiver(
-                    null,
-                    IntentFilter(AppBroadcasts.ACTION_SEND_BINDER),
-                    Context.RECEIVER_EXPORTED,
-                )
-            } else {
-                @Suppress("DEPRECATION")
-                registerReceiver(null, IntentFilter(AppBroadcasts.ACTION_SEND_BINDER))
-            }
-        binderReceiver.onReceive(this, stickyBinderIntent)
-
-        if (!isServiceOk && attempt < 16) {
-            activationHandler.postDelayed({ pollActivatedState(token, attempt + 1) }, 500L)
+        connectController(AppBroadcasts.stickyBinderIntent(this))
+        if (!isServiceOk && attempt < ACTIVATION_REFRESH_ATTEMPTS) {
+            activationHandler.postDelayed(
+                { pollActivatedState(token, attempt + 1) },
+                ACTIVATION_REFRESH_INTERVAL_MS,
+            )
         }
     }
 
@@ -884,5 +899,10 @@ class MainActivity : Activity() {
                 FileOutputStream(externalDir.resolve("starter.sh")).use(input::copyTo)
             }
         }
+    }
+
+    private companion object {
+        const val ACTIVATION_REFRESH_ATTEMPTS = 16
+        const val ACTIVATION_REFRESH_INTERVAL_MS = 500L
     }
 }

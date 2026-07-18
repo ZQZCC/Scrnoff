@@ -5,12 +5,11 @@ interface IScreenOff {
     const int STATE_ON = 1;
     const int STATE_SPECIAL = 2;
 
-    void setPowerMode(boolean turnOff);
+    oneway void setPowerMode(boolean turnOff);
 
-    void updateNowScreenState(boolean isScreenOn);
+    oneway void updateNowScreenState(boolean isScreenOn);
 
     int getNowScreenState();
 
-    void closeAndExit();
-
+    oneway void closeAndExit();
 }

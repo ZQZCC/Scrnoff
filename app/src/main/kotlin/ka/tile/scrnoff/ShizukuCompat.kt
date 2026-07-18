@@ -20,5 +20,6 @@ object ShizukuCompat {
             writer.appendLine(command)
             writer.appendLine("exit")
         }
+        check(process.waitFor() == 0)
     }
 }

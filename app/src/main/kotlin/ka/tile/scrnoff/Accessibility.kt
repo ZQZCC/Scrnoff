@@ -6,20 +6,18 @@ import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
 
-fun Context.isGlobalAccessibilityServiceEnabled(): Boolean =
-    enabledAccessibilityServices().any { it.matchesGlobalAccessibilityService(this) }
+fun Context.isGlobalAccessibilityServiceEnabled(): Boolean {
+    val expected = ComponentName(this, GlobalService::class.java)
+    return enabledAccessibilityServices().any { it.matchesGlobalAccessibilityService(expected) }
+}
 
 fun Context.enableGlobalAccessibilityService(): Boolean {
-    if (isGlobalAccessibilityServiceEnabled()) return true
-
-    val serviceName = globalAccessibilityServiceName()
+    val expected = ComponentName(this, GlobalService::class.java)
     val services = enabledAccessibilityServices()
-    val newValue =
-        if (services.any { it.matchesGlobalAccessibilityService(this) }) {
-            services.joinToString(":")
-        } else {
-            (listOf(serviceName) + services).joinToString(":")
-        }
+    if (services.any { it.matchesGlobalAccessibilityService(expected) }) return true
+
+    val serviceName = expected.flattenToString()
+    val newValue = if (services.isEmpty()) serviceName else "$serviceName:${services.joinToString(":")}"
 
     return runCatching {
         Settings.Secure.putInt(contentResolver, Settings.Secure.ACCESSIBILITY_ENABLED, 1)
@@ -53,8 +51,7 @@ private fun Context.enabledAccessibilityServices(): List<String> =
         ?.filter { it.isNotBlank() }
         .orEmpty()
 
-private fun String.matchesGlobalAccessibilityService(context: Context): Boolean {
-    val expected = ComponentName(context, GlobalService::class.java)
+private fun String.matchesGlobalAccessibilityService(expected: ComponentName): Boolean {
     val parsed = ComponentName.unflattenFromString(this)
     return if (parsed != null) {
         parsed.packageName == expected.packageName && parsed.className == expected.className

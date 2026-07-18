@@ -28,7 +28,6 @@
     <string name="fw_size">悬浮球大小</string>
     <string name="fw_tran">悬浮球透明度</string>
     <string name="ori_sensity">立起检测灵敏度</string>
-    <string name="tile">全局控制</string>
     <string name="service_closed">息屏运行服务已关闭</string>
     <string name="net_ctl">局域网控制亮灭屏</string>
 </resources>

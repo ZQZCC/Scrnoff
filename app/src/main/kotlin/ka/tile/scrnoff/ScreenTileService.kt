@@ -1,5 +1,6 @@
 package ka.tile.scrnoff
 
+import android.annotation.SuppressLint
 import android.annotation.TargetApi
 import android.app.PendingIntent
 import android.content.Intent
@@ -7,7 +8,8 @@ import android.os.Build
 import android.service.quicksettings.TileService
 
 @TargetApi(Build.VERSION_CODES.N)
-open class ScreenTileService : TileService() {
+@SuppressLint("StartActivityAndCollapseDeprecated", "UseRequiresApi")
+class ScreenTileService : TileService() {
     override fun onClick() {
         super.onClick()
         if (qsTile == null) return
@@ -32,6 +34,3 @@ open class ScreenTileService : TileService() {
         }
     }
 }
-
-@Suppress("ClassName")
-class tileService : ScreenTileService()

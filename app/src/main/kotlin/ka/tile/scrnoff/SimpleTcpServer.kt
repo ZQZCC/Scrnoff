@@ -3,7 +3,6 @@ package ka.tile.scrnoff
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.Closeable
-import java.io.OutputStream
 import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
@@ -14,8 +13,7 @@ class SimpleTcpServer(
     port: Int,
 ) {
     interface TcpConnectionListener {
-        fun onReceive(data: ByteArray)
-        fun onResponseSent()
+        fun onReceive(data: ByteArray, size: Int)
     }
 
     private val serverSocket: ServerSocket? = runCatching {
@@ -25,40 +23,43 @@ class SimpleTcpServer(
         }
     }.getOrNull()
 
-    @Volatile private var socket: Socket? = null
-    @Volatile private var input: BufferedInputStream? = null
-    @Volatile private var output: OutputStream? = null
+    @Volatile
+    private var running = false
+    @Volatile
+    private var socket: Socket? = null
+    @Volatile
+    private var output: BufferedOutputStream? = null
 
+    @Synchronized
     fun start() {
         val server = serverSocket ?: return
+        if (running) return
+        running = true
         thread(name = "ScreenOffTcpAccept", isDaemon = true) {
-            runCatching {
-                val accepted = server.accept()
-                socket = accepted
-                input = BufferedInputStream(accepted.getInputStream())
-                output = BufferedOutputStream(accepted.getOutputStream())
-                startInputThread()
-            }
+            acceptLoop(server)
         }
     }
 
-    private fun startInputThread() {
-        thread(name = "ScreenOffTcpInput", isDaemon = true) {
-            val buffer = ByteArray(CAPACITY)
-            while (true) {
-                val stream = input ?: break
-                val size = runCatching { stream.read(buffer) }.getOrElse {
-                    restart()
-                    break
-                }
-                if (size > 0) {
-                    listener.onReceive(buffer.copyOf(size))
-                } else {
-                    restart()
-                    break
+    private fun acceptLoop(server: ServerSocket) {
+        val buffer = ByteArray(CAPACITY)
+        while (running) {
+            val accepted = runCatching { server.accept() }.getOrNull() ?: break
+            socket = accepted
+            runCatching {
+                accepted.soTimeout = READ_TIMEOUT_MS
+                BufferedInputStream(accepted.getInputStream()).use { input ->
+                    output = BufferedOutputStream(accepted.getOutputStream())
+                    while (running && socket === accepted) {
+                        val size = input.read(buffer)
+                        if (size <= 0) break
+                        listener.onReceive(buffer, size)
+                    }
                 }
             }
+            closeClient(accepted)
         }
+        running = false
+        closeClient()
     }
 
     fun output(data: String) {
@@ -71,27 +72,22 @@ class SimpleTcpServer(
         runCatching {
             stream.write(data)
             stream.flush()
-            listener.onResponseSent()
-        }.onFailure {
-            restart()
         }
-    }
-
-    fun restart() {
         closeClient()
-        start()
     }
 
+    @Synchronized
     fun stop() {
+        running = false
         closeClient()
         serverSocket.closeQuietly()
     }
 
-    private fun closeClient() {
-        input.closeQuietly()
+    @Synchronized
+    private fun closeClient(expected: Socket? = null) {
+        if (expected != null && socket !== expected) return
         output.closeQuietly()
         socket.closeQuietly()
-        input = null
         output = null
         socket = null
     }
@@ -102,5 +98,6 @@ class SimpleTcpServer(
 
     private companion object {
         const val CAPACITY = 8 * 1024
+        const val READ_TIMEOUT_MS = 5_000
     }
 }

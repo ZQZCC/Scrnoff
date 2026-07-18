@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "ScreenOff"
+rootProject.name = "Scrnoff"
 include(":app")
