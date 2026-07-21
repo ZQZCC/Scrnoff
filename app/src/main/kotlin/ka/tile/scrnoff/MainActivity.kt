@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
 import android.app.Service
-import android.content.BroadcastReceiver
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -19,10 +18,7 @@ import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.os.PowerManager
-import android.os.RemoteException
 import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
@@ -38,12 +34,9 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.Toast
 import ka.tile.scrnoff.databinding.MainBinding
-import java.io.DataOutputStream
-import java.io.FileOutputStream
 import java.net.Inet4Address
 import java.net.NetworkInterface
 import java.util.Locale
-import kotlin.concurrent.thread
 import kotlin.math.roundToInt
 import rikka.shizuku.Shizuku
 
@@ -54,7 +47,6 @@ class MainActivity : Activity() {
     private lateinit var binding: MainBinding
     private var isServiceOk = false
     private var isPermissionResultListenerRegistered = false
-    private var isBroadcastReceiverRegistered = false
     private var scrOffKey = KeyEvent.KEYCODE_VOLUME_DOWN
     private var scrOnKey = KeyEvent.KEYCODE_VOLUME_UP
     private var surfaceContainerColor = Color.TRANSPARENT
@@ -64,15 +56,7 @@ class MainActivity : Activity() {
     private var networkTitleExpandedText = ""
     private var networkTitleCollapsedText = ""
     private var iScreenOff: IScreenOff? = null
-    private val activationHandler = Handler(Looper.getMainLooper())
-    private var activationRefreshToken = 0
-
-    private val binderReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent?) {
-            if (!AppBroadcasts.isTrustedControllerSender(this, context)) return
-            connectController(intent)
-        }
-    }
+    private val controllerListener: (IScreenOff?) -> Unit = ::updateController
 
     private val shizukuPermissionListener =
         Shizuku.OnRequestPermissionResultListener { _, result ->
@@ -97,20 +81,15 @@ class MainActivity : Activity() {
 
         val sp = getSharedPreferences("s", MODE_PRIVATE)
         setButtonsOnClick(sp)
-        val stickyBinderIntent = AppBroadcasts.registerReceiver(
-            this,
-            binderReceiver,
-            AppBroadcasts.binderFilter(),
-            exported = true,
-        )
-        isBroadcastReceiverRegistered = true
-        connectController(stickyBinderIntent)
     }
 
-    private fun connectController(intent: Intent?) {
-        val binder = AppBroadcasts.aliveBinderFrom(intent) ?: return
-        iScreenOff = IScreenOff.Stub.asInterface(binder)
-        enableScreenOffFunctions()
+    private fun updateController(controller: IScreenOff?) {
+        iScreenOff = controller
+        if (controller != null) {
+            if (!isServiceOk) enableScreenOffFunctions()
+        } else if (isServiceOk) {
+            disableScreenOffFunctions()
+        }
     }
 
     private fun applyAveragedSurfaces(isNight: Boolean) {
@@ -667,7 +646,7 @@ class MainActivity : Activity() {
         })
     }
 
-    fun enableScreenOffFunctions() {
+    private fun enableScreenOffFunctions() {
         isServiceOk = true
         binding.settingsContent.visibility = View.VISIBLE
         binding.sv.apply {
@@ -691,19 +670,26 @@ class MainActivity : Activity() {
         binding.screenoffSwitch.isEnabled = true
     }
 
+    private fun disableScreenOffFunctions() {
+        isServiceOk = false
+        binding.settingsContent.visibility = View.GONE
+        binding.activateButton.apply {
+            setText(R.string.not_ok)
+            background = getDrawable(R.drawable.md3e_error_pill)
+            setTextColor(colorCompat(R.color.md3e_on_error))
+            setOnClickListener { showActivate() }
+            setOnLongClickListener(null)
+        }
+        binding.screenoffSwitch.isEnabled = false
+    }
+
     private fun closeScreenOffService() {
         getSharedPreferences("s", MODE_PRIVATE)
             .edit()
             .putBoolean("float", false)
             .apply()
         sendBroadcast(AppBroadcasts.exitIntent(this))
-        runCatching {
-            iScreenOff?.closeAndExit()
-        }.onFailure { error ->
-            if (error !is RemoteException) {
-                throw error
-            }
-        }
+        ControllerSession.stop(this)
         iScreenOff = null
         isServiceOk = false
     }
@@ -749,8 +735,6 @@ class MainActivity : Activity() {
     }
 
     private fun checkShizuku() {
-        unzipFiles()
-
         if (!isPermissionResultListenerRegistered) {
             Shizuku.addRequestPermissionResultListener(shizukuPermissionListener)
             isPermissionResultListenerRegistered = true
@@ -772,8 +756,15 @@ class MainActivity : Activity() {
     }
 
     private fun activateWithShizuku() {
-        val command = activationCommand() ?: return
-        runActivation { ShizukuCompat.runShell(command) }
+        activate(ControllerSession.SHIZUKU)
+    }
+
+    private fun activate(backend: Int) {
+        ControllerSession.activate(this, backend) { controller ->
+            if (controller == null && !isDestroyed) {
+                Toast.makeText(this, R.string.active_failed, Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -785,10 +776,20 @@ class MainActivity : Activity() {
         super.onConfigurationChanged(newConfig)
     }
 
+    override fun onStart() {
+        super.onStart()
+        ControllerSession.addListener(this, controllerListener)
+        ControllerSession.ensureReady(this)
+    }
+
     override fun onResume() {
         super.onResume()
         syncAccessibilityState()
-        if (!isServiceOk) refreshActivatedState()
+    }
+
+    override fun onStop() {
+        ControllerSession.removeListener(controllerListener)
+        super.onStop()
     }
 
     private fun syncAccessibilityState() {
@@ -802,14 +803,8 @@ class MainActivity : Activity() {
     }
 
     override fun onDestroy() {
-        activationRefreshToken += 1
-        activationHandler.removeCallbacksAndMessages(null)
         if (isPermissionResultListenerRegistered) {
             Shizuku.removeRequestPermissionResultListener(shizukuPermissionListener)
-        }
-        if (isBroadcastReceiverRegistered) {
-            unregisterReceiver(binderReceiver)
-            isBroadcastReceiverRegistered = false
         }
         super.onDestroy()
     }
@@ -819,8 +814,11 @@ class MainActivity : Activity() {
     }
 
     fun showActivate() {
-        unzipFiles()
-        val command = activationCommand() ?: return
+        val command = ControllerSession.activationCommand(this)
+        if (command == null) {
+            Toast.makeText(this, R.string.active_failed, Toast.LENGTH_SHORT).show()
+            return
+        }
         val dialogTheme =
             if (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_YES == Configuration.UI_MODE_NIGHT_YES) {
                 android.R.style.Theme_DeviceDefault_Dialog_Alert
@@ -840,69 +838,9 @@ class MainActivity : Activity() {
                 ).show()
             }
             .setNegativeButton(R.string.by_root) { _, _ ->
-                runActivation {
-                    val process = Runtime.getRuntime().exec("su")
-                    DataOutputStream(process.outputStream).use { output ->
-                        output.writeBytes(command)
-                        output.writeBytes("\nexit\n")
-                        output.flush()
-                    }
-                    check(process.waitFor() == 0)
-                }
+                activate(ControllerSession.ROOT)
             }
         builder.setPositiveButton(R.string.by_shizuku) { _, _ -> checkShizuku() }
         builder.show()
-    }
-
-    private fun runActivation(action: () -> Unit) {
-        thread(name = "ScreenOffActivation", isDaemon = true) {
-            val succeeded = runCatching(action).isSuccess
-            runOnUiThread {
-                if (isDestroyed) return@runOnUiThread
-                if (succeeded) {
-                    refreshActivatedState()
-                } else {
-                    Toast.makeText(this, R.string.active_failed, Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-    }
-
-    private fun activationCommand(): String? =
-        getExternalFilesDir(null)
-            ?.resolve("starter.sh")
-            ?.path
-            ?.let { "sh $it" }
-
-    private fun refreshActivatedState() {
-        activationRefreshToken += 1
-        pollActivatedState(activationRefreshToken, 0)
-    }
-
-    private fun pollActivatedState(token: Int, attempt: Int) {
-        if (token != activationRefreshToken || isServiceOk || isDestroyed) return
-
-        connectController(AppBroadcasts.stickyBinderIntent(this))
-        if (!isServiceOk && attempt < ACTIVATION_REFRESH_ATTEMPTS) {
-            activationHandler.postDelayed(
-                { pollActivatedState(token, attempt + 1) },
-                ACTIVATION_REFRESH_INTERVAL_MS,
-            )
-        }
-    }
-
-    private fun unzipFiles() {
-        val externalDir = getExternalFilesDir(null) ?: return
-
-        runCatching {
-            assets.open("starter.sh").use { input ->
-                FileOutputStream(externalDir.resolve("starter.sh")).use(input::copyTo)
-            }
-        }
-    }
-
-    private companion object {
-        const val ACTIVATION_REFRESH_ATTEMPTS = 16
-        const val ACTIVATION_REFRESH_INTERVAL_MS = 500L
     }
 }

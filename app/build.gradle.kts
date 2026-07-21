@@ -25,14 +25,14 @@ val hasReleaseSigning =
 
 android {
     namespace = "ka.tile.scrnoff"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "ka.tile.scrnoff"
         minSdk = 23
-        targetSdk = 36
-        versionCode = 2
-        versionName = "1.1.0"
+        targetSdk = 37
+        versionCode = 3
+        versionName = "1.1.1"
     }
 
     signingConfigs {

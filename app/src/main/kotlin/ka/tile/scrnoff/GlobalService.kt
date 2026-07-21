@@ -13,7 +13,6 @@ import android.graphics.drawable.ShapeDrawable
 import android.graphics.drawable.shapes.OvalShape
 import android.os.Build
 import android.os.Handler
-import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
 import android.os.RemoteException
@@ -55,19 +54,12 @@ class GlobalService : AccessibilityService(), SharedPreferences.OnSharedPreferen
     private val indexTemplate by lazy { loadHtml("index.html").orEmpty() }
     private val notFoundTemplate by lazy { loadHtml("404.html").orEmpty() }
     private val favicon by lazy { loadBinary("favicon.png") }
-
-    private val binderReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent?) {
-            if (!AppBroadcasts.isTrustedControllerSender(this, context)) return
-            connectController(intent)
+    private val controllerListener: (IScreenOff?) -> Unit = { controller ->
+        iScreenOff = controller
+        if (controller != null) {
+            runCatching { controller.updateNowScreenState(systemScreenInteractive) }
+            refreshFloatingWindow()
         }
-    }
-
-    private fun connectController(intent: Intent?) {
-        val binder: IBinder = AppBroadcasts.aliveBinderFrom(intent) ?: return
-        iScreenOff = IScreenOff.Stub.asInterface(binder)
-        runCatching { iScreenOff?.updateNowScreenState(systemScreenInteractive) }
-        refreshFloatingWindow()
     }
 
     private val screenReceiver = object : BroadcastReceiver() {
@@ -101,8 +93,16 @@ class GlobalService : AccessibilityService(), SharedPreferences.OnSharedPreferen
                 runCatching { iScreenOff?.updateNowScreenState(true) }
             }
 
-            AppBroadcasts.ACTION_SET_SCREEN_OFF ->
-                screenOff(intent.getBooleanExtra(AppBroadcasts.EXTRA_STATE, true))
+            AppBroadcasts.ACTION_SET_SCREEN_OFF -> {
+                val turnOff = intent.getBooleanExtra(AppBroadcasts.EXTRA_STATE, true)
+                if (iScreenOff == null) {
+                    ControllerSession.ensureReady(this) { controller ->
+                        if (controller != null) screenOff(turnOff)
+                    }
+                } else {
+                    screenOff(turnOff)
+                }
+            }
 
             AppBroadcasts.ACTION_EXIT ->
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) disableSelf() else stopSelf()
@@ -213,14 +213,9 @@ class GlobalService : AccessibilityService(), SharedPreferences.OnSharedPreferen
             AppBroadcasts.commandFilter(),
             exported = false,
         )
-        val stickyBinderIntent = AppBroadcasts.registerReceiver(
-            this,
-            binderReceiver,
-            AppBroadcasts.binderFilter(),
-            exported = true,
-        )
         receiversRegistered = true
-        connectController(stickyBinderIntent)
+        ControllerSession.addListener(this, controllerListener)
+        ControllerSession.ensureReady(this)
     }
 
     private fun screenOff(turnOff: Boolean) {
@@ -232,7 +227,7 @@ class GlobalService : AccessibilityService(), SharedPreferences.OnSharedPreferen
             view.keepScreenOn = turnOff
             if (shake && turnOff) orientationListener?.enable() else orientationListener?.disable()
         }.onFailure {
-            if (it is RemoteException) iScreenOff = null
+            if (it is RemoteException) ControllerSession.invalidate(remote)
         }
     }
 
@@ -240,20 +235,25 @@ class GlobalService : AccessibilityService(), SharedPreferences.OnSharedPreferen
         if (!volume || !systemScreenInteractive || event.action == KeyEvent.ACTION_UP) {
             return super.onKeyEvent(event)
         }
-        if (iScreenOff == null) return super.onKeyEvent(event)
+        val remote = iScreenOff ?: return super.onKeyEvent(event)
 
-        return when (event.keyCode) {
-            scrOffKey -> {
-                screenOff(true)
-                true
+        return runCatching {
+            when {
+                event.keyCode == scrOffKey && remote.nowScreenState == IScreenOff.STATE_ON -> {
+                    screenOff(true)
+                    true
+                }
+
+                event.keyCode == scrOnKey && remote.nowScreenState == IScreenOff.STATE_SPECIAL -> {
+                    screenOff(false)
+                    true
+                }
+
+                else -> super.onKeyEvent(event)
             }
-
-            scrOnKey -> {
-                screenOff(false)
-                true
-            }
-
-            else -> super.onKeyEvent(event)
+        }.getOrElse {
+            if (it is RemoteException) ControllerSession.invalidate(remote)
+            super.onKeyEvent(event)
         }
     }
 
@@ -348,8 +348,8 @@ class GlobalService : AccessibilityService(), SharedPreferences.OnSharedPreferen
     }
 
     override fun onDestroy() {
+        ControllerSession.removeListener(controllerListener)
         if (receiversRegistered) {
-            unregisterReceiver(binderReceiver)
             unregisterReceiver(screenReceiver)
             unregisterReceiver(commandReceiver)
             receiversRegistered = false
