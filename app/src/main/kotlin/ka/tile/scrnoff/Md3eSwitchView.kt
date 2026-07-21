@@ -36,17 +36,7 @@ class Md3eSwitchView @JvmOverloads constructor(
     private val uncheckedBorderColor = context.colorCompat(R.color.md3e_switch_border_unchecked)
     private val disabledTrackColor = context.colorCompat(R.color.md3e_switch_track_disabled)
     private val disabledContentColor = context.colorCompat(R.color.md3e_outline_variant)
-    private val checkedThumbColor by lazy {
-        if (context.isNightTheme) {
-            context.colorCompat(R.color.md3e_switch_thumb_checked)
-        } else {
-            context.averageSystemColor(
-                android.R.color.system_accent2_50,
-                android.R.color.system_accent2_10,
-            )
-                ?: context.colorCompat(R.color.md3e_switch_thumb_checked)
-        }
-    }
+    private val checkedThumbColor = context.colorCompat(R.color.md3e_switch_thumb_checked)
 
     init {
         isClickable = true

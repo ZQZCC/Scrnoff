@@ -2,12 +2,12 @@
 <resources>
     <color name="bg">@android:color/system_accent1_100</color>
     <color name="fg">@android:color/system_neutral1_700</color>
-    <color name="md3e_surface">@android:color/system_neutral1_0</color>
+    <color name="md3e_surface">@android:color/system_neutral1_10</color>
     <color name="md3e_surface_container">@android:color/system_neutral1_50</color>
     <color name="md3e_on_surface">@android:color/system_neutral1_900</color>
     <color name="md3e_on_surface_variant">@android:color/system_neutral2_700</color>
     <color name="md3e_outline_variant">@android:color/system_neutral2_300</color>
-    <color name="md3e_primary">@android:color/system_accent1_700</color>
+    <color name="md3e_primary">@android:color/system_accent1_600</color>
     <color name="md3e_primary_soft">@android:color/system_accent1_600</color>
     <color name="md3e_primary_container">@android:color/system_accent1_100</color>
     <color name="md3e_service_container">@android:color/system_accent2_100</color>

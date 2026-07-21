@@ -76,7 +76,7 @@ class MainActivity : Activity() {
             window.isNavigationBarContrastEnforced = false
         }
         val isNight = isNightTheme
-        applyAveragedSurfaces(isNight)
+        applyMaterialSurfaces()
         applySystemBars(isNight)
 
         val sp = getSharedPreferences("s", MODE_PRIVATE)
@@ -92,27 +92,12 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun applyAveragedSurfaces(isNight: Boolean) {
-        val backgroundColor =
-            if (isNight) {
-                colorCompat(R.color.md3e_surface)
-            } else {
-                averageSystemColor(
-                    android.R.color.system_neutral1_10,
-                    android.R.color.system_neutral2_10,
-                )
-                    ?: colorCompat(R.color.md3e_surface)
-            }
-        val containerColor =
-            if (isNight) {
-                colorCompat(R.color.md3e_surface_container)
-            } else {
-                averageSystemColor(
-                    android.R.color.system_neutral1_50,
-                    android.R.color.system_neutral2_50,
-                )
-                    ?: colorCompat(R.color.md3e_surface_container)
-            }
+    private fun applyMaterialSurfaces() {
+        val backgroundColor = colorCompat(R.color.md3e_surface)
+        val containerColor = surfaceColorAtOneDp(
+            surface = backgroundColor,
+            tint = colorCompat(R.color.md3e_primary),
+        )
         surfaceContainerColor = containerColor
         val radius = 36f * resources.displayMetrics.density
 
@@ -375,6 +360,7 @@ class MainActivity : Activity() {
             listOf(sb, sc, sd).forEach { it.isEnabled = enabled }
         }
         updateFloatDependentLayouts(s2.isChecked)
+        updateGlobalDependentLayouts(accessibilityEnabled)
 
         fun applyFloatEnabled(enabled: Boolean) {
             if (!enabled) {
@@ -421,8 +407,11 @@ class MainActivity : Activity() {
 
             if (isChecked) {
                 openAccessibilityService(button)
-                if (s8.isChecked) showNet()
+                val enabled = isGlobalAccessibilityServiceEnabled()
+                updateGlobalDependentLayouts(enabled)
+                if (enabled && s8.isChecked) showNet()
             } else {
+                updateGlobalDependentLayouts(false)
                 showDefaultTitle()
                 sendBroadcast(AppBroadcasts.exitIntent(this))
             }
@@ -579,7 +568,7 @@ class MainActivity : Activity() {
         if (enableGlobalAccessibilityService()) {
             button.setCheckedSilently(true)
         } else {
-            button.isChecked = false
+            button.setCheckedSilently(false)
             Toast.makeText(this, R.string.mannually_open, Toast.LENGTH_SHORT).show()
             startActivity(globalAccessibilitySettingsIntent())
         }
@@ -795,10 +784,21 @@ class MainActivity : Activity() {
     private fun syncAccessibilityState() {
         val enabled = isGlobalAccessibilityServiceEnabled()
         binding.s1.setCheckedSilently(enabled)
+        updateGlobalDependentLayouts(enabled)
         if (!enabled && binding.s2.isChecked) {
             binding.s2.isChecked = false
         } else if (enabled && binding.s8.isChecked) {
             showNet()
+        }
+    }
+
+    private fun updateGlobalDependentLayouts(enabled: Boolean) {
+        binding.globalDependentContent.visibility = if (enabled) View.VISIBLE else View.GONE
+        (binding.s1.parent as View).run {
+            setBackgroundResource(
+                if (enabled) R.drawable.md3e_segment_top else R.drawable.md3e_segment_single,
+            )
+            backgroundTintList = ColorStateList.valueOf(surfaceContainerColor)
         }
     }
 
