@@ -53,7 +53,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="64dp"
                     android:layout_marginLeft="4dp"
-                    android:layout_marginTop="88dp"
+                    android:layout_marginTop="80dp"
                     android:layout_marginRight="4dp"
                     android:autoLink="all"
                     android:ellipsize="end"
@@ -241,58 +241,46 @@
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="56dp"
                     android:layout_marginTop="12dp"
-                    android:background="@drawable/md3e_panel"
-                    android:orientation="vertical"
-                    android:paddingLeft="16dp"
-                    android:paddingTop="14dp"
-                    android:paddingRight="16dp"
-                    android:paddingBottom="16dp"
-                    android:tag="surface_container">
+                    android:orientation="horizontal">
 
                     <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal">
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginRight="6dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/md3e_filled_field"
+                        android:orientation="vertical"
+                        android:paddingTop="4dp"
+                        android:tag="surface_container">
 
                         <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="center"
+                            android:id="@+id/e1_label"
+                            android:layout_width="match_parent"
+                            android:layout_height="18dp"
+                            android:gravity="bottom"
                             android:includeFontPadding="false"
+                            android:labelFor="@id/e1"
+                            android:paddingLeft="16dp"
+                            android:paddingRight="16dp"
                             android:text="@string/scroff"
                             android:textColor="@color/md3e_on_surface_variant"
-                            android:textSize="13sp" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="center"
-                            android:includeFontPadding="false"
-                            android:text="@string/scron"
-                            android:textColor="@color/md3e_on_surface_variant"
-                            android:textSize="13sp" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:orientation="horizontal">
+                            android:textSize="12sp" />
 
                         <EditText
                             android:id="@+id/e1"
-                            android:layout_width="0dp"
-                            android:layout_height="48dp"
-                            android:layout_marginRight="6dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/md3e_input"
-                            android:gravity="center"
+                            android:layout_width="match_parent"
+                            android:layout_height="34dp"
+                            android:background="@drawable/md3e_filled_field_indicator"
+                            android:gravity="start|center_vertical"
                             android:hint="25"
+                            android:includeFontPadding="false"
                             android:inputType="number"
+                            android:paddingLeft="16dp"
+                            android:paddingTop="0dp"
+                            android:paddingRight="16dp"
+                            android:paddingBottom="0dp"
                             android:selectAllOnFocus="true"
                             android:textColor="@color/md3e_on_surface"
                             android:textColorHighlight="@color/md3e_primary_container"
@@ -300,18 +288,46 @@
                             android:textCursorDrawable="@drawable/md3e_edit_cursor"
                             android:textSelectHandle="@drawable/md3e_text_select_handle"
                             android:textSelectHandleLeft="@drawable/md3e_text_select_handle"
-                            android:textSelectHandleRight="@drawable/md3e_text_select_handle" />
+                            android:textSelectHandleRight="@drawable/md3e_text_select_handle"
+                            android:textSize="16sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginLeft="6dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/md3e_filled_field"
+                        android:orientation="vertical"
+                        android:paddingTop="4dp"
+                        android:tag="surface_container">
+
+                        <TextView
+                            android:id="@+id/e2_label"
+                            android:layout_width="match_parent"
+                            android:layout_height="18dp"
+                            android:gravity="bottom"
+                            android:includeFontPadding="false"
+                            android:labelFor="@id/e2"
+                            android:paddingLeft="16dp"
+                            android:paddingRight="16dp"
+                            android:text="@string/scron"
+                            android:textColor="@color/md3e_on_surface_variant"
+                            android:textSize="12sp" />
 
                         <EditText
                             android:id="@+id/e2"
-                            android:layout_width="0dp"
-                            android:layout_height="48dp"
-                            android:layout_marginLeft="6dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/md3e_input"
-                            android:gravity="center"
+                            android:layout_width="match_parent"
+                            android:layout_height="34dp"
+                            android:background="@drawable/md3e_filled_field_indicator"
+                            android:gravity="start|center_vertical"
                             android:hint="24"
+                            android:includeFontPadding="false"
                             android:inputType="number"
+                            android:paddingLeft="16dp"
+                            android:paddingTop="0dp"
+                            android:paddingRight="16dp"
+                            android:paddingBottom="0dp"
                             android:selectAllOnFocus="true"
                             android:textColor="@color/md3e_on_surface"
                             android:textColorHighlight="@color/md3e_primary_container"
@@ -319,7 +335,8 @@
                             android:textCursorDrawable="@drawable/md3e_edit_cursor"
                             android:textSelectHandle="@drawable/md3e_text_select_handle"
                             android:textSelectHandleLeft="@drawable/md3e_text_select_handle"
-                            android:textSelectHandleRight="@drawable/md3e_text_select_handle" />
+                            android:textSelectHandleRight="@drawable/md3e_text_select_handle"
+                            android:textSize="16sp" />
                     </LinearLayout>
                 </LinearLayout>
 

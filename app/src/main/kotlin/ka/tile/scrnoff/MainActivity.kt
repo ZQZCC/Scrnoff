@@ -32,6 +32,7 @@ import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
+import android.widget.TextView
 import android.widget.Toast
 import ka.tile.scrnoff.databinding.MainBinding
 import java.net.Inet4Address
@@ -471,6 +472,8 @@ class MainActivity : Activity() {
             scrOnKey = value
             sp.edit().putInt("scrOnKey", value).apply()
         }
+        bindFilledField(e1, binding.e1Label)
+        bindFilledField(e2, binding.e2Label)
 
         binding.activateButton.setOnClickListener { showActivate() }
         binding.settingsContent.visibility =
@@ -557,6 +560,15 @@ class MainActivity : Activity() {
             item.highlightColor = primaryContainer
         }
         binding.activateButton.setTextColor(colorCompat(R.color.md3e_on_error))
+    }
+
+    private fun bindFilledField(editText: EditText, label: TextView) {
+        val normalColor = colorCompat(R.color.md3e_on_surface_variant)
+        val focusedColor = colorCompat(R.color.md3e_primary)
+        label.setTextColor(if (editText.hasFocus()) focusedColor else normalColor)
+        editText.setOnFocusChangeListener { _, hasFocus ->
+            label.setTextColor(if (hasFocus) focusedColor else normalColor)
+        }
     }
 
     private fun openAccessibilityService(button: Md3eSwitchView) {
